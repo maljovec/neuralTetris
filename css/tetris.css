@@ -1,0 +1,166 @@
+/* ***** Global Variables ***** */
+:root {
+    /* dark blue */
+    --bg-color: #313440;
+     /* white */
+    --fg-color: #dee2f8;
+    /* gold */
+    --accent-color: #fecf5f;
+    /* green */
+    --positive-color: #a1ef9d; 
+    /* red */
+    --negative-color: #fc8678; 
+    /* light blue */
+    --hl-color: #7eb9fe; 
+}
+
+/* ***** Generics ***** */
+body{
+    background-color: var(--bg-color);
+    color: var(--fg-color);
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+}
+
+h1 {
+    color: var(--accent-color);
+    text-align: center;
+    width: 100%;
+}
+
+h2 {
+    padding: 0px;
+    margin: 0px;
+}
+
+.ui {
+    border-style: solid;
+    border-width: 2px;
+    border-color: var(--fg-color);
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* ***** Game ***** */
+#game {
+    padding: 0;
+    margin: auto;
+    display: block;
+    width: 200px;
+    height: 400px;
+}
+
+#board {
+    border-radius: 0px;
+}
+
+/* ***** Text-only UI Elements ***** */
+#box-lines {
+    color: var(--hl-color);
+    width: 100px;
+    height: 80px;
+    right: 20px;
+    top: 390px;
+    position: fixed;
+}
+#box-level {
+    color: var(--hl-color);
+    width: 100px;
+    height: 80px;
+    right: 20px;
+    top: 290px;
+    position: fixed;
+}
+#box-score {
+    color: var(--positive-color);
+    width: 100px;
+    height: 80px;
+    right: 20px;
+    top: 190px;
+    position: fixed;    
+}
+
+/* ***** Next ***** */
+#box-next {
+    color: var(--negative-color);
+    width: 100px;
+    height: 100px;
+    right: 20px;
+    top: 20px;
+    position: fixed;
+}
+#placeholder-next{
+    width: 80px;
+    height: 60px;
+}
+
+/* ***** Statistics ***** */
+#box-stats {
+    color: var(--hl-color);
+    width: 140px;
+    height: 500px;
+    left: 20px;
+    top: 20px;
+    position: fixed;
+}
+
+#box-stats table {
+    text-align: center;
+    padding: 0px;
+    margin: 0px;
+}
+
+#box-stats td {
+    width: 80px;
+    height: 60px;
+}
+#box-stats canvas {
+    width: 80px;
+    height: 60px;
+    margin-left: 10px;
+}
+
+/* ***** Special Layout Considerations ***** */
+@media only screen and (max-width: 530px) {
+    #box-stats {
+        display: none;
+    }
+
+    #game {
+        margin: 0;
+    }
+}
+
+@media only screen and (max-width: 340px) {
+    #box-score {
+        width: 20%;
+    }
+    #box-next {
+        width: 20%;
+    }
+    #box-level {
+        width: 20%;
+    }
+    #box-lines {
+        width: 20%;
+    }
+
+    #placeholder-next {
+        width: 95%;
+        margin: auto;
+        padding: 0;
+    }
+
+    #placeholder-next:after {
+        content: "";
+        display: block;
+        padding-bottom: 75%;
+      }
+
+    #game {
+        width: 80%;
+    }
+
+    h1, h2, p { 
+        font-size: 10pt; 
+     }
+}
