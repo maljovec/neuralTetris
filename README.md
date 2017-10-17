@@ -13,11 +13,34 @@ Neural Tetris is a pet project I created in order to familiarize myself with dee
 
 The game logic is programmed using JavaScript and utilizes an HTML5 canvas for rendering the game. While a user is playing the game, data will be sent in real-time to a web server using websockets where it will be pushed to a database for training a neural network.
 
-Regarding the game itself, I referred to the [Tetris Wiki](http://tetris.wikia.com/wiki/Tetris_Wiki) in order to specific game behaviors, scoring, and color themes. I have chosen not to implement a hard drop or scoring for T-spins.
+## Gameplay details
+
+### Controls
+ * <kbd>&larr;</kbd> - Move tetrimino left
+ * <kbd>&rarr;</kbd> - Move tetrimino right
+ * <kbd>&darr;</kbd> - Soft drop
+ * <kbd>X</kbd> - Rotate tetrimino clockwise
+ * <kbd>Z</kbd> - Rotate tetrimino counterclockwise
+
+### Scoring
+ * Single line clear - 100 &#215; level
+ * Double line clear - 300 &#215; level
+ * Triple line clear - 500 &#215; level
+ * Tetris line clear - 800 &#215; level
+ * Combo clear - 50 &#215; count &#215; level
+ * Soft drop - 1 point per unit dropped
+
+### Advanced Players
+
+Regarding the game itself, I referred to the [Tetris Wiki](http://tetris.wikia.com/wiki/Tetris_Wiki) in order to specify game behaviors, scoring, and color themes. I have chosen not to implement a hard drop or scoring for T-spins.
 
 ## The Server
 
+TODO: Description of functionality
+
 ## The Brain
+
+TODO: NNet architecture
 
 # Setting up your own instance
 
