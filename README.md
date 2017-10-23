@@ -63,6 +63,8 @@ Install the following prerequisite libraries:
 
 ## Spinning up the Database
 
+[WIP] - This section may not be working as intended as the test set was too large for github. TODO: write instructions for unpacking the backup file correctly.
+
 Navigate to the ```server``` directory and start the rethinkdb engine:
 
 ```bash
