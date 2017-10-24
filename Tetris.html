@@ -102,22 +102,7 @@
         glyph.drawFixed(canvas, 1, 1);
 
         var canvas=document.getElementById("board");
-        game = new Game(canvas, 8);
-
-        // var testominos = [];
-        // testominos.push(new I_Tetromino(40,380));
-        // testominos.push(new Z_Tetromino(80,360));
-        // testominos.push(new T_Tetromino(20,340));
-        // testominos.push(new L_Tetromino(140,360));
-        // testominos.push(new J_Tetromino(120,340));
-        // testominos.push(new O_Tetromino(160,320));
-        // testominos.push(new S_Tetromino(80,320));
-        // for (i in testominos) {
-        //     testominos[i].lock();
-        //     game.add(testominos[i]);
-        // }
-
-        // game.draw();
+        game = new Game(canvas, 1);
 
         function onkey(ev, key, pressed) {
             switch(key) {
@@ -130,32 +115,6 @@
                 case KEY.SPACE: game.input.pause  = pressed; ev.preventDefault(); break;
             }
         }
-
-        // Used to debug the error caused around failure to sort 10 and 9
-        // correctly
-        // J left side
-        // game.setBoard([[' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ',' ',' '],
-        //                [' ',' ',' ',' ',' ',' ',' ',' ','T',' '],
-        //                [' ',' ','T','T','T','T','T','T','T','T'],
-        //                [' ','T','T','T','T','T','T','T','T','T'],
-        //                [' ','T','T','T','T','T','T','T','T','T'],
-        //                [' ',' ','T','T','T','T','T','T','T','T'],
-        //                [' ','T','T','T','T','T','T','T','T','T'],
-        //                [' ','T','T',' ','T','T','T','T','T','T'],
-        //                ['T','T','T',' ','T','T','T',' ','T','T'],
-        //                ['T','T','T','T','T',' ','T',' ','T','T'],
-        //                [' ','T','T','T','T',' ','T',' ','T','T'],
-        //                ['T','T','T',' ','T','T','T','T','T',' '],
-        //                ['T','T','T',' ',' ','T','T','T','T',' '],
-        //                ['T','T','T','T',' ','T','T','T','T',' '],
-        //                ['T','T','T','T',' ','T','T','T','T','T'],
-        //                ['T','T','T','T','T','T','T','T','T',' ']]);
 
         document.addEventListener('keydown', function(ev) { return onkey(ev, ev.keyCode, true);  }, false);
         document.addEventListener('keyup',   function(ev) { return onkey(ev, ev.keyCode, false); }, false);
@@ -189,7 +148,6 @@
                 document.getElementById("placeholder-Scount").innerHTML=game.statistics['s'];
                 document.getElementById("placeholder-Tcount").innerHTML=game.statistics['t'];
                 document.getElementById("placeholder-Zcount").innerHTML=game.statistics['z'];
-                // document.getElementById("placeholder-Icount").innerHTML=10000;
 
                 document.getElementById("placeholder-lines").innerHTML=game.lines;
                 document.getElementById("placeholder-level").innerHTML=game.level;
