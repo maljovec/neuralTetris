@@ -63,15 +63,29 @@ Install the following prerequisite libraries:
 
 ## Spinning up the Database
 
-[WIP] - This section may not be working as intended as the test set was too large for github. TODO: write instructions for unpacking the backup file correctly.
-
 Navigate to the ```server``` directory and start the rethinkdb engine:
 
 ```bash
 rethinkdb
 ```
 
-The engine should pick up on the existing data and you can test that this is working by navigating a browser instance to: ```http://localhost:8080/```. You should see a web interface and under the "Tables" column, it should read "3 tables ready."
+Once the database server is running on your local machine, you will need to restore the test data by executing the following command in the same directory as above:
+
+```bash
+rethinkdb restore moves.tar.gz
+```
+
+The engine should pick up on the existing data and you can test that this is working by navigating a browser instance to: ```http://localhost:8080/```. You should see a web interface and under the "Tables" heading, it should read "1/1 tables ready."
+
+You can verify that the import worked correctly by navigating to the "Data Explorer" tab on the top menu bar of the web interface and typing the following command:
+
+```javascript
+r.db('Tetris').table('moves').group('userId','gameId').pluck('userId','gameId').count()
+```
+
+And pressing the 'Run' button. The resulting "Table view" should look like the following:
+
+![A listing of the example games in the test database](images/exampleData "Example Database")
 
 ## Starting the Web server
 
