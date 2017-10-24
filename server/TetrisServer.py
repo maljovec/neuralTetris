@@ -152,33 +152,13 @@ async def updateDatabase(websocket, path):
     elif gameType == 'Playing':
         userId = int(await websocket.recv())
 
-        ## Train or load a neural network instance based on the userId
-        ##rdb.db('Tetris').table('moves').filter().run(connection)
-        # parameters = []
-        # for row in range(HEIGHT):
-        #     for col in range(WIDTH):
-        #         parameters.append('board_{}_{}'.format(row,col))
-        # parameters.append('currentPiece')
-        # parameters.append('nextPiece')
-        # parameters.append('timeDelay')
-        # parameters.append('iCount')
-        # parameters.append('jCount')
-        # parameters.append('lCount')
-        # parameters.append('oCount')
-        # parameters.append('sCount')
-        # parameters.append('tCount')
-        # parameters.append('zCount')
-        # target = 'input'
-
-        # trainingData = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId)).pluck(parameters+[target]).run(connection)
-        # trainingData = rdb.db('Tetris').table('moves').filter(lambda move: move['userId'] == userId).pluck(parameters+[target]).run(connection)
         model = keras.models.load_model('user_{}.h5'.format(userId))
+        model.load_weights("user_{}_weights.hdf5".format(userId))
         inputs = np.loadtxt('user_{}.csv'.format(userId), delimiter=',', dtype=int)
         while True:
             ## Retrieve the board state
             gameState = await websocket.recv()
             tokens = gameState.split(',')
-            state = {}
             userId = int(tokens[0])
             gameId = int(tokens[1])
             ticks = int(tokens[2])
@@ -186,38 +166,40 @@ async def updateDatabase(websocket, path):
                 print('The AI of player {} has lost game {}. Closing websocket.'.format(userId, gameId))
                 break
             
-            modelInput = np.zeros(230, dtype=int)
+            boardData = np.zeros((HEIGHT, WIDTH))
+
             idx = 0
             for row in range(HEIGHT):
                 for col in range(WIDTH):
-                    modelInput[idx] = (tokens[3+row*WIDTH+col] != '0')
+                    boardData[row, col] = (tokens[3+row*WIDTH+col] != '0')
                     idx += 1
                     
-            modelInput[idx] = encode_letter(tokens[223])
+            currentData = encode_letter(tokens[223])
             idx += 1
-            modelInput[idx] = encode_letter(tokens[224])
+
+            nextData = encode_letter(tokens[224])
             idx += 1
-            modelInput[idx] = int(tokens[225])
+
+            timeData = np.array([int(tokens[225])])
             idx += 1
-            counts = []
-            counts.append(int(tokens[226]))
-            counts.append(int(tokens[227]))
-            counts.append(int(tokens[228]))
-            counts.append(int(tokens[229]))
-            counts.append(int(tokens[230]))
-            counts.append(int(tokens[231]))
-            counts.append(int(tokens[232]))
-            
-            for count in counts:
-                modelInput[idx] = count - min(counts)
-                idx += 1
+
+            bagData = np.zeros((1,7))
+            startIdx = 226
+            for i in range(7):
+                bagData[0,i] = int(tokens[startIdx + i])
+
+            minVal = min(bagData)
+            bagData = bagData - minVal
 
             lines = int(tokens[233])
             score = int(tokens[234])
 
+            boardData = boardData.reshape(-1, HEIGHT, WIDTH)
+            pieceData = np.vstack([currentData,nextData]).T
+
             ## Feed the board state into our neural network
-            idx = model.predict(modelInput.reshape(1,-1)).argmax()
-            userInput = inputs[idx]
+            idx = model.predict([boardData, bagData, pieceData, timeData])
+            userInput = inputs[np.argmax(idx)]
 
             ## Possibly visualize the neural network firing
 

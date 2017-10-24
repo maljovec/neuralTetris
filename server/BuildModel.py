@@ -6,8 +6,9 @@ import numpy as np
 import pandas as pd
 import rethinkdb as rdb
 
-from keras.models import Sequential
-from keras.layers import Dense, Activation
+from keras.models import Sequential, Model
+from keras.layers import Input, Dense, Activation, Conv2D, Reshape, Flatten, Concatenate
+from keras.callbacks import ModelCheckpoint
 
 from time import time
 
@@ -36,13 +37,18 @@ def encode_letter(letter):
         value = 6
     return value
 
-def train(user_id):
+def train(user_id, reconstruct_missing_data=False):
     """
         Train a neural network model for a given user
         Keyword arguments:
 
         user_id - the user id key in the database for which we will be building
                   a brain.
+        reconstruct_missing_data - A boolean flag for specifying whether
+                                   non-input ticks of the game should be put
+                                   back into the filtered data. This can cause
+                                   more noise in an already class-imbalanced
+                                   problem, default is False.
     """
     parameters = []
     for row in range(HEIGHT):
@@ -63,8 +69,8 @@ def train(user_id):
     counts.append('zCount')
 
     parameters += counts
-
     target = 'input'
+    columns = ['gameId', 'ticks'] + parameters + [target]
 
     ############################################################################
     ## Retrieve data from database
@@ -72,8 +78,6 @@ def train(user_id):
     start = time()
 
     connection = rdb.connect('localhost', 28015)
-
-    columns = ['gameId', 'ticks'] + parameters + [target]
 
     training_data = rdb.db('Tetris').table('moves')\
                                     .filter((rdb.row['userId'] == user_id))\
@@ -85,26 +89,27 @@ def train(user_id):
     print('Done ({} s)'.format(end-start))
     ############################################################################
     ## Reconstruct missing data by filling in the missing ticks with zero input
-    print('Reconstructing missing data...', end="")
-    start = time()
+    if reconstruct_missing_data:
+        print('Reconstructing missing data...', end="")
+        start = time()
 
-    rows_to_add = []
-    last_row = None
-    for index, row in training_data.iterrows():
-        if last_row is not None and last_row['gameId'] == row['gameId']:
-            if row['ticks'] != last_row['ticks']+1:
-                for tick in range(last_row['ticks']+1, row['ticks']):
-                    new_row = last_row.copy()
-                    new_row['ticks'] = tick
-                    new_row['input'] = 0
-                    rows_to_add.append(new_row)
-        last_row = row
+        new_rows = []
+        last_row = None
+        for index, row in training_data.iterrows():
+            if last_row is not None and last_row['gameId'] == row['gameId']:
+                if row['ticks'] != last_row['ticks']+1:
+                    for tick in range(last_row['ticks']+1, row['ticks']):
+                        new_row = last_row.copy()
+                        new_row['ticks'] = tick
+                        new_row['input'] = 0
+                        new_rows.append(new_row)
+            last_row = row
 
-    rows_to_add = pd.DataFrame(rows_to_add)
-    training_data = pd.concat([training_data, rows_to_add], ignore_index=True)
+        new_rows = pd.DataFrame(new_rows)
+        training_data = pd.concat([training_data, new_rows], ignore_index=True)
 
-    end = time()
-    print('Done ({} s)'.format(end-start))
+        end = time()
+        print('Done ({} s)'.format(end-start))
     ############################################################################
     ## Create the training data
     print('Massaging data...', end="")
@@ -117,8 +122,9 @@ def train(user_id):
 
     ## remove the offsets on the piece statistics, we only really care which
     ## pieces have yet to drawn from the current bag
+    col = -len(counts)
     for i in range(len(train_x)):
-        train_x[i][-len(counts):] = train_x[i][-len(counts):] - min(train_x[i][-len(counts):])
+        train_x[i][col:] = train_x[i][col:] - min(train_x[i][col:])
 
     user_inputs = training_data[target].as_matrix()
     unique_inputs = np.unique(user_inputs)
@@ -127,22 +133,50 @@ def train(user_id):
     for i, inp in enumerate(user_inputs):
         train_y[i] = np.array(unique_inputs == inp, dtype=int)
 
+    ############################################################################
+    ## Reorganize the data to allow it to be passed in as separate layers
+
+    boardData = train_x[:, :WIDTH*HEIGHT]
+    boardData = boardData.reshape(-1, HEIGHT, WIDTH)
+    currentData = train_x[:, WIDTH*HEIGHT]
+    nextData = train_x[:, WIDTH*HEIGHT+1]
+    timeData = train_x[:, WIDTH*HEIGHT+2]
+    bagData = train_x[:, WIDTH*HEIGHT+3:]
+    pieceData = np.vstack([currentData,nextData]).T
+
     end = time()
     print('Done ({} s)'.format(end-start))
+
     ############################################################################
     ## Build the NN architecture (this is where we can play around)
     print('Specifying neural architecture...', end="")
     start = time()
 
-    input_dim = len(parameters)
-    model = Sequential()
-    model.add(Dense(units=5000, input_dim=input_dim))
-    model.add(Activation('relu'))
-    # model.add(Dense(units=5000, input_dim=input_dim))
-    # model.add(Activation('relu'))
-    model.add(Dense(units=num_unique_inputs))
-    model.add(Activation('relu'))
+    board_shape = (HEIGHT, WIDTH)
+    board_input = Input(shape=board_shape, dtype=np.float32, name='board_input')
+    bag_input = Input(shape=(7,), dtype=np.float32, name='bag_input')
+    piece_input = Input(shape=(2,), dtype=np.float32, name='piece_input')
+    speed_input = Input(shape=(1,), dtype=np.float32, name='speed_input')
+
+    conv_input = Reshape(board_shape + (1, ), input_shape=board_shape)(board_input)
+    conv_output = Conv2D(filters=32, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer1_conv3-32')(conv_input)
+    conv_output = Conv2D(filters=32, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer2_conv3-32')(conv_output)
+    conv_output = Conv2D(filters=64, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer3_conv3-64')(conv_output)
+    flattened_output = Flatten()(conv_output)
+
+    secondary_input = Concatenate()([flattened_output, bag_input, piece_input, speed_input])
+
+    secondary_input = Dense(128, activation='relu')(secondary_input)
+    secondary_input = Dense(512, activation='relu')(secondary_input)
+    secondary_input = Dense(13, activation='relu')(secondary_input)
+    final_output = Dense(num_unique_inputs, activation='softmax')(secondary_input)
+
+    model = Model([board_input, bag_input, piece_input, speed_input], outputs=[final_output])
     model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+
+    filepath="weights-improvement-{epoch:02d}-{acc:.2f}.hdf5"
+    checkpoint = ModelCheckpoint(filepath, monitor='acc', verbose=1, save_best_only=True, mode='max')
+    callbacks_list = [checkpoint]
 
     end = time()
     print('Done ({} s)'.format(end-start))
@@ -150,13 +184,21 @@ def train(user_id):
     ## Fit the model
     start = time()
 
-    model.fit(train_x, train_y, epochs=1, batch_size=8)
+    history = model.fit([boardData, bagData, pieceData, timeData], train_y, epochs=100, batch_size=1, callbacks=callbacks_list)
 
     end = time()
+
+    ## Print after the fact, since Tensorflow will be providing some
+    ## intermediate output to let the user know something is happening.
     print('Fitting the model...', end="")
     print('Done ({} s)'.format(end-start))
     return model, unique_inputs
 
 nnet, classes = train(USER)
-nnet.save('user_{}.h5'.format(USER))
-np.savetxt('user_{}.csv'.format(USER), classes, fmt='%d', delimiter=',')
+model_file = 'user_{}.h5'.format(USER)
+inputs_file = 'user_{}.csv'.format(USER)
+
+nnet.save(model_file)
+np.savetxt(inputs_file, classes, fmt='%d', delimiter=',')
+
+print('Model saved as \"{}\" with inputs saved to \"{}\"'.format(model_file, inputs_file))
