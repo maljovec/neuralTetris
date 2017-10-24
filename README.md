@@ -85,7 +85,7 @@ r.db('Tetris').table('moves').group('userId','gameId').pluck('userId','gameId').
 
 And pressing the 'Run' button. The resulting "Table view" should look like the following:
 
-![A listing of the example games in the test database](images/exampleData "Example Database")
+![A listing of the example games in the test database](images/exampleData.png "Example Database")
 
 ## Starting the Web server
 
