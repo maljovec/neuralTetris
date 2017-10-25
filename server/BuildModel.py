@@ -37,7 +37,7 @@ def encode_letter(letter):
         value = 6
     return value
 
-def train(user_id, reconstruct_missing_data=False):
+def train(user_id, reconstruct_missing_data=False, balance_data=False):
     """
         Train a neural network model for a given user
         Keyword arguments:
@@ -49,6 +49,15 @@ def train(user_id, reconstruct_missing_data=False):
                                    back into the filtered data. This can cause
                                    more noise in an already class-imbalanced
                                    problem, default is False.
+        balance_data - A boolean flag for specifying whether we should attempt
+                       to remove the bias caused by the player being "idle" most
+                       of the time. We can do this by oversampling the non-zero
+                       elements or undersampling the zero input entries. Note,
+                       this is not mutually exclusive of the
+                       reconstruct_missing_data flag as we can oversample our
+                       non-zero elements to equalize that case, though the
+                       effect may be slower training times without much added
+                       benefit.
     """
     parameters = []
     for row in range(HEIGHT):
@@ -107,6 +116,40 @@ def train(user_id, reconstruct_missing_data=False):
 
         new_rows = pd.DataFrame(new_rows)
         training_data = pd.concat([training_data, new_rows], ignore_index=True)
+
+        end = time()
+        print('Done ({} s)'.format(end-start))
+    ############################################################################
+    ## Re-balance the data set if possible
+    if balance_data:
+        print('Balance registered inputs...', end="")
+        start = time()
+
+        ## none/none/none = 0+0+0 = 0
+        ## none/none/down = 0+0+9 = 9
+
+        ## left/none/none = 1+0+0 = 1
+        ## right/none/none = 2+0+0 = 2
+        ## none/CCW/none = 0+3+0 = 3
+        ## none/CW/none = 0+6+0 = 6
+
+        ## right/CCW/none = 2+3+0 = 5
+        ## right/CW/none = 2+6+0 = 8
+        ## left/CCW/none = 1+3+0 = 4
+        ## left/CW/none = 1+6+0 = 7
+        ## none/CCW/down = 0+3+9 = 12
+
+        ## Equalizing values
+        # input_counts = training_data[target].value_counts().to_dict()
+        # total_count = training_data.shape[0]
+        # for value, count in input_counts.items():
+        #     percent = count / float(total_count)
+
+        ## Just duplicate the non-zero and non-drop elements for now
+        nonzero_rows = training_data.loc[training_data[target] != 0 ]
+        nonzero_rows = nonzero_rows.loc[nonzero_rows[target] != 9 ]
+        for i in range(7):  
+            training_data = pd.concat([training_data, nonzero_rows], ignore_index=True)
 
         end = time()
         print('Done ({} s)'.format(end-start))
@@ -194,7 +237,7 @@ def train(user_id, reconstruct_missing_data=False):
     print('Done ({} s)'.format(end-start))
     return model, unique_inputs
 
-nnet, classes = train(USER)
+nnet, classes = train(USER, False, True)
 model_file = 'user_{}.h5'.format(USER)
 inputs_file = 'user_{}.csv'.format(USER)
 
