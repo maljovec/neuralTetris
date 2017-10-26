@@ -957,12 +957,16 @@ class Game {
         var inputCode = this.inputs.shift();
         var userInput = this.decodeInput(inputCode);
 
+        var inputAccepted = false;
+
         //Move left or right
         if (userInput.indexOf('left') >= 0 && !this.current.collision(this.board, -1, 0)) {
             this.current.translate(-1,0);
+            inputAccepted = true;
         }
         else if (userInput.indexOf('right') >= 0 && !this.current.collision(this.board, 1, 0)) {
             this.current.translate(1,0);
+            inputAccepted = true;
         }
         
         if (userInput.indexOf('down') >= 0 ) {
@@ -979,12 +983,14 @@ class Game {
         //Turn block CW or CCW
         if (userInput.indexOf('CCW') >= 0) {
             this.current.rotate(this.board, false);
+            inputAccepted = true;
         }
         else if (userInput.indexOf('CW') >= 0) {
             this.current.rotate(this.board, true);
+            inputAccepted = true;
         }
 
-        return (userInput.length > 0);
+        return inputAccepted;
     }
 
     processUserInput() {
