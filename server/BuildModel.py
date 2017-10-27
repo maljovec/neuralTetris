@@ -89,8 +89,8 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     connection = rdb.connect('localhost', 28015)
 
     training_data = rdb.db('Tetris').table('moves')\
+                                    .order_by(index='userGameTick')\
                                     .filter((rdb.row['userId'] == user_id))\
-                                    .order_by('gameId', 'ticks')\
                                     .pluck(columns).run(connection)
     training_data = pd.DataFrame([row for row in training_data])
 
@@ -148,8 +148,15 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
         ## Just duplicate the non-zero and non-drop elements for now
         nonzero_rows = training_data.loc[training_data[target] != 0 ]
         nonzero_rows = nonzero_rows.loc[nonzero_rows[target] != 9 ]
-        for i in range(7):  
+
+        num_op = nonzero_rows.shape[0]
+        num_noop = training_data.shape[0] - num_op
+
+        print('Class balance: op ({}) vs noop ({})'.format(num_op, num_noop))
+
+        while num_op*2 < num_noop:
             training_data = pd.concat([training_data, nonzero_rows], ignore_index=True)
+            num_op *= 2
 
         end = time()
         print('Done ({} s)'.format(end-start))
