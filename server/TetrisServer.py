@@ -199,7 +199,12 @@ async def updateDatabase(websocket, path):
 
             ## Feed the board state into our neural network
             idx = model.predict([boardData, bagData, pieceData, timeData])
-            userInput = inputs[np.argmax(idx)]
+            ## Choose strongest input
+            # selected = np.argmax(idx)
+            ## Add some uncertainty into the selection
+            selected = np.argmin(abs(idx / max(idx) - np.random.uniform()))
+
+            userInput = inputs[selected]
 
             ## Possibly visualize the neural network firing
 
