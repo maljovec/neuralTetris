@@ -178,8 +178,10 @@ class Tetromino {
             else {
                 // Our rotation failed, restore the original state
                 this.rotate(board, !(CW));
+                return false;
             }
         }
+        return true;
     }
 
     collision(board, x=0, y=0) {
@@ -287,7 +289,7 @@ class I_Tetromino extends Tetromino {
                 break;
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -353,7 +355,7 @@ class J_Tetromino extends Tetromino {
                 break;
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -418,7 +420,7 @@ class L_Tetromino extends Tetromino {
                 break;
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -429,7 +431,7 @@ class O_Tetromino extends Tetromino {
         super(Xs, Ys, 'o');
     }
     // There is no rotation on the square block
-    rotate(board, CW = true) { }
+    rotate(board, CW = true) { return false; }
 }
 
 class S_Tetromino extends Tetromino {
@@ -460,7 +462,7 @@ class S_Tetromino extends Tetromino {
             this.translate(0,1);
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -525,7 +527,7 @@ class T_Tetromino extends Tetromino {
                 break;
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -558,7 +560,7 @@ class Z_Tetromino extends Tetromino {
             this.translate(0,1);
         }
 
-        this.checkValidRotation(board, CW);
+        return this.checkValidRotation(board, CW);
     }
 }
 
@@ -982,12 +984,10 @@ class Game {
 
         //Turn block CW or CCW
         if (userInput.indexOf('CCW') >= 0) {
-            this.current.rotate(this.board, false);
-            inputAccepted = true;
+            inputAccepted = this.current.rotate(this.board, false);
         }
         else if (userInput.indexOf('CW') >= 0) {
-            this.current.rotate(this.board, true);
-            inputAccepted = true;
+            inputAccepted = this.current.rotate(this.board, true);
         }
 
         return inputAccepted;
