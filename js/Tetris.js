@@ -78,6 +78,12 @@ function shuffle(arrayIn) {
     return arrayOut;
 }
 
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min)) + min; //The maximum is exclusive and the minimum is inclusive
+}
+
 function drawMonomino(letter, x, y, canvas, width = BLOCK_SIZE, height = BLOCK_SIZE) {
     if (letter == ' ') { return }
     var context = canvas.getContext("2d");
@@ -566,7 +572,7 @@ class Z_Tetromino extends Tetromino {
 
 class Game {
 
-    constructor(canvas, userId=1, gameId=null, ai=false) {
+    constructor(canvas, userId=1, gameId=null, ai=false, trainingMode=false) {
         this.canvas = canvas;
 
         // For now, hard code the user to be me while I debug this thing.
@@ -591,6 +597,7 @@ class Game {
         this.ghostOn = true;
         this.ready = false;
         this.ai = ai;
+        this.trainingMode = trainingMode;
 
         if (this.ai) {
             this.automated = true;
@@ -876,6 +883,40 @@ class Game {
                     }
                 }
                 this.linesCleared = new Set();
+
+                if (this.trainingMode) {
+                    var trainingHeight = 4;
+                    var highestColumn = HEIGHT;
+                    for (var row = 0; row < highestColumn; row++)
+                    {
+                        for (var col = 0; col < WIDTH; col++) {
+                            if (this.board[row][col] != ' ') {
+                                highestColumn = row;
+                                break;
+                            }
+                        }
+                    }
+                    if (highestColumn > 10+this.level) {
+                        for (var row = highestColumn-trainingHeight; row < HEIGHT-trainingHeight; row++)
+                        {
+                            for (var col = 0; col < WIDTH; col++) {
+                                this.board[row][col] = this.board[row+trainingHeight][col];
+                            }
+                        }
+                        for (var row = HEIGHT-trainingHeight; row < HEIGHT; row++)
+                        {
+                            var missingColumn = getRandomInt(0, WIDTH);
+                            for (var col = 0; col < WIDTH; col++) {
+                                if (col == missingColumn) {
+                                    this.board[row][col] = ' ';
+                                }
+                                else {
+                                    this.board[row][col] = 't';
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         else if (this.setTimer >= 0) {
