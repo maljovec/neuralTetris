@@ -1,15 +1,55 @@
-from flask import Blueprint
+from flask import Blueprint, render_template, redirect, url_for, request, flash
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import login_user, logout_user, login_required
+import rethinkdb as rdb
+import os
 
-auth = Blueprint('auth', __name__)
+DB_HOST = os.environ.get('DB_HOST', 'localhost')
+DB_PORT = os.environ.get('DB_PORT', 28015)
 
-@auth.route('/login')
-def login():
-    return 'Login'
+auth = Blueprint("auth", __name__)
 
-@auth.route('/signup')
-def signup():
-    return 'Signup'
 
-@auth.route('/logout')
+@auth.route('/login', methods=['POST'])
+def login_post():
+    name = request.form.get('name')
+    password = request.form.get('password')
+    remember = True if request.form.get('remember') else False
+
+    connection = rdb.connect(DB_HOST, DB_PORT)
+    user = rdb.db('Tetris').table('users').get(name).run(connection)
+
+    if not user or not check_password_hash(user['password'], password):
+        flash('Please check your login details and try again.')
+        return redirect(url_for('auth.login'))
+
+    login_user(user, remember=remember)
+    return redirect(url_for('main.profile'))
+
+
+@auth.route("/signup", methods=["POST"])
+def signup_post():
+    name = request.form.get("name")
+    password = request.form.get("password")
+    password = generate_password_hash(password, method="sha256")
+
+    connection = rdb.connect(DB_HOST, DB_PORT)
+    user = rdb.db('Tetris').table('users').get(name).run(connection)
+
+    if user:
+        flash('name already exists')
+        return redirect(url_for("auth.signup"))
+
+    user['userId'] = name
+    user['password'] = password
+
+    rdb.db('Tetris').table('users').insert(user).run(connection)
+
+    return redirect(url_for("auth.login"))
+
+
+@auth.route("/logout")
+@login_required
 def logout():
-    return 'Logout'
+    logout_user()
+    return render_template("signup.html")
