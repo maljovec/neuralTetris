@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id='game'>
+    <h1>Tetris ({{mode}})</h1>
+    <canvas class='ui' id='board' width='200' height='400'>
+    </canvas>
+</div>
+<div class='ui' id='box-next'>
+    <h2>Next</h2>
+    <canvas class='placeholder' id='placeholder-next' width='80' height='60'></canvas>
+</div>
+<div class='ui' id='box-stats'>
+    <h2>Statistics</h2>
+    <table>
+        <tr id='stat-T'>
+            <td><canvas id='placeholder-Tglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Tcount'>1000</td>
+        </tr>
+
+        <tr id='stat-J'>
+            <td><canvas id='placeholder-Jglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Jcount'>1000</td>
+        </tr>
+
+        <tr id='stat-Z'>
+            <td><canvas id='placeholder-Zglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Zcount'>1000</td>
+        </tr>
+
+        <tr id='stat-O'>
+            <td><canvas id='placeholder-Oglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Ocount'>1000</td>
+        </tr>
+
+        <tr id='stat-S'>
+            <td><canvas id='placeholder-Sglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Scount'>1000</td>
+        </tr>
+
+        <tr id='stat-L'>
+            <td><canvas id='placeholder-Lglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Lcount'>1000</td>
+        </tr>
+
+        <tr id='stat-I'>
+            <td><canvas id='placeholder-Iglyph' width='80' height='60'></canvas></td>
+            <td class='placeholder' id='placeholder-Icount'>1000</td>
+        </tr>
+    </table>
+</div>
+<div class='ui' id='box-lines'>
+    <h2>Lines</h2>
+    <p id='placeholder-lines'>0</p>
+</div>
+<div class='ui' id='box-score'>
+    <h2>Score</h2>
+    <p id='placeholder-score'>0</p>
+</div>
+<div class='ui' id='box-level'>
+    <h2>Level</h2>
+    <p id='placeholder-level'>1</p>
+</div>
+<script src="{{ url_for('static',filename='js/play.js') }}"></script>
+{% if mode == 'play' %}
+<script>
+    game = new Game(canvas, userId = '{{ name }}', gameId = null, ai = false, trainingMode = true);
+
+    function onkey(ev, key, pressed) {
+        switch (key) {
+            case KEY.X: game.input.CW = pressed; ev.preventDefault(); break;
+            case KEY.Z: game.input.CCW = pressed; ev.preventDefault(); break;
+            case KEY.LEFT: game.input.left = pressed; ev.preventDefault(); break;
+            case KEY.RIGHT: game.input.right = pressed; ev.preventDefault(); break;
+            case KEY.DOWN: game.input.down = pressed; ev.preventDefault(); break;
+            case KEY.UP: game.input.up = pressed; ev.preventDefault(); break;
+            case KEY.SPACE: game.input.pause = pressed; ev.preventDefault(); break;
+        }
+    }
+
+    document.addEventListener('keydown', function (ev) { return onkey(ev, ev.keyCode, true); }, false);
+    document.addEventListener('keyup', function (ev) { return onkey(ev, ev.keyCode, false); }, false);
+
+    // function ontouchstart(event) {
+    // }
+    // function ontouchmove(event) {
+    // }
+    // document.addEventListener('touchstart', ontouchstart, false);
+    // document.addEventListener('touchmove',  ontouchmove,  false);
+
+    requestAnimationFrame(gameLoop);
+</script>
+{% elif mode == 'test' %}
+<script>
+    game = new Game(canvas, userId = '{{ name }}', gameId = null, ai = true);
+    requestAnimationFrame(gameLoop);
+</script>
+{% else %}
+<p class="content">Please select a game:</p>
+<ul>
+    {% for game in games %}
+    <li><a href="#" class="body__link">{{game}}</a></li>
+    {% endfor %}
+</ul>
+{% if mode == 'debug' %}
+<!-- script>
+        game = new Replay(canvas, userId = '{{ name}}', gameId = {{ game }});
+        requestAnimationFrame(gameLoop);
+    </script -->
+{% elif mode == 'watch' %}
+<!-- script>
+        game = new Game(canvas, userId = '{{name}}', gameId = {{game}});
+        requestAnimationFrame(gameLoop);
+    </script -->
+{% endif %}
+{% endif %}
+{% endblock %}

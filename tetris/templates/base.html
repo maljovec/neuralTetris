@@ -3,10 +3,15 @@
 
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tetris</title>
     <link rel="stylesheet" href="{{ url_for('static',filename='css/tetris.css') }}" />
+    <!-- Scripts -->
+    <!-- See if you can include this into the constructor of the Game class -->
+    <script src="https://kit.fontawesome.com/dd53a25d75.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.3/seedrandom.min.js"></script>
+    <script src="{{ url_for('static',filename='js/Tetris.js') }}"></script>
 </head>
 
 <body>
