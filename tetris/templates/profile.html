@@ -4,4 +4,11 @@
 <h1 class="title">
     Welcome, {{ name }}!
 </h1>
+<p class="content"> Please select a mode:</p>
+<ul class="link-list">
+    <li><a href="{{ url_for('main.play') }}" class="body__link">Play</a></li>
+    <li><a href="{{ url_for('main.watch') }}" class="body__link">Watch</a></li>
+    <li><a href="{{ url_for('main.test') }}" class="body__link">Test</a></li>
+    <li><a href="{{ url_for('main.debug') }}" class="body__link">Debug</a></li>
+</ul>
 {% endblock %}

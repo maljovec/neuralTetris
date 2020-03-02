@@ -17,24 +17,24 @@ def profile():
 
 @main.route("/play")
 @login_required
-def profile():
+def play():
     return render_template("Tetris.html", name=current_user.name)
 
 
 @main.route("/watch")
 @login_required
-def profile():
+def watch():
     return render_template("Replay.html", name=current_user.name)
 
 
 @main.route("/debug")
 @login_required
-def profile():
+def debug():
     return render_template("DebugReplay.html", name=current_user.name)
 
 
 @main.route("/test")
 @login_required
-def profile():
+def test():
     return render_template("Brain.html", name=current_user.name)
 

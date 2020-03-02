@@ -2,9 +2,22 @@
 
 {% block content %}
 <h1 class="title">
-  Flask Login Example
+    Neural Tetris
 </h1>
-<h2 class="subtitle">
-  Easy authentication and authorization in Flask.
-</h2>
+<p class="content">This is a personal project I have been working on that attempts to build a neural network that
+    can understand your Tetris play style. Sign up or log in and play a few games, then you should be able to watch
+    the "brain" play a game as you...<br />Or at least that is the plan.
+</p>
+<ul class="link-list">
+    {% if current_user.is_authenticated %}
+    <li><a href="{{ url_for('main.profile') }}" class="body__link">Profile</a></li>
+    {% endif %}
+    {% if not current_user.is_authenticated %}
+    <li><a href="{{ url_for('auth.login') }}" class="body__link">Login</a></li>
+    <li><a href="{{ url_for('auth.signup') }}" class="body__link">Sign Up</a></li>
+    {% endif %}
+    {% if current_user.is_authenticated %}
+    <li><a href="{{ url_for('auth.logout') }}" class="body__link">Logout</a></li>
+    {% endif %}
+</ul>
 {% endblock %}

@@ -1,30 +1,39 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, logout_user, login_required
-import rethinkdb as rdb
+from flask_login import login_manager, login_user, logout_user, login_required
+import rethinkdb as r
 import os
 
-DB_HOST = os.environ.get('DB_HOST', 'localhost')
-DB_PORT = os.environ.get('DB_PORT', 28015)
+from tetris.models import User
+from tetris.db import DB_HOST, DB_PORT, RDB
 
 auth = Blueprint("auth", __name__)
 
 
-@auth.route('/login', methods=['POST'])
+@auth.route("/login")
+def login():
+    return render_template("login.html")
+
+
+@auth.route("/signup")
+def signup():
+    return render_template("signup.html")
+
+
+@auth.route("/login", methods=["POST"])
 def login_post():
-    name = request.form.get('name')
-    password = request.form.get('password')
-    remember = True if request.form.get('remember') else False
+    name = request.form.get("name")
+    password = request.form.get("password")
+    remember = True if request.form.get("remember") else False
 
-    connection = rdb.connect(DB_HOST, DB_PORT)
-    user = rdb.db('Tetris').table('users').get(name).run(connection)
+    connection = RDB.connect(DB_HOST, DB_PORT)
+    credentials = RDB.db("Tetris").table("users").get(name).run(connection)
+    if not credentials or not check_password_hash(credentials["password"], password):
+        flash("Please check your login details and try again.")
+        return redirect(url_for("auth.login"))
 
-    if not user or not check_password_hash(user['password'], password):
-        flash('Please check your login details and try again.')
-        return redirect(url_for('auth.login'))
-
-    login_user(user, remember=remember)
-    return redirect(url_for('main.profile'))
+    login_user(User(**credentials), remember=remember)
+    return redirect(url_for("main.profile"))
 
 
 @auth.route("/signup", methods=["POST"])
@@ -33,17 +42,15 @@ def signup_post():
     password = request.form.get("password")
     password = generate_password_hash(password, method="sha256")
 
-    connection = rdb.connect(DB_HOST, DB_PORT)
-    user = rdb.db('Tetris').table('users').get(name).run(connection)
+    connection = RDB.connect(DB_HOST, DB_PORT)
+    existing_user = RDB.db("Tetris").table("users").get(name).run(connection)
 
-    if user:
-        flash('name already exists')
+    if existing_user:
+        flash("name already exists")
         return redirect(url_for("auth.signup"))
 
-    user['userId'] = name
-    user['password'] = password
-
-    rdb.db('Tetris').table('users').insert(user).run(connection)
+    user = {"name": name, "password": password}
+    RDB.db("Tetris").table("users").insert(user).run(connection)
 
     return redirect(url_for("auth.login"))
 

@@ -7,11 +7,11 @@
     /* gold */
     --accent-color: #fecf5f;
     /* green */
-    --positive-color: #a1ef9d; 
+    --positive-color: #a1ef9d;
     /* red */
-    --negative-color: #fc8678; 
-    /* light blue */
-    --hl-color: #7eb9fe; 
+    --negative-color: #fc8678;
+    /*light blue */
+    --link-color: #7eb9fe;
 }
 
 /* ***** Generics ***** */
@@ -32,12 +32,73 @@ h2 {
     margin: 0px;
 }
 
+nav {
+    text-align: right;
+}
+
+.navbar-item {
+    color: var(--link-color);
+    text-decoration: none;
+    padding: 5px;
+}
+
+.navbar-item:hover {
+    color: var(--bg-color);
+    background-color: var(--link-color);
+}
+
+.body__link {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+.body__link:hover {
+    text-decoration: underline;
+}
+
+
+.column {
+    display: block;
+    width: 200px;
+    margin: auto;
+}
+
 .ui {
     border-style: solid;
     border-width: 2px;
     border-color: var(--fg-color);
     border-radius: 5px;
     text-align: center;
+}
+
+.form {
+    display: block;
+}
+
+.input {
+    width: 100%;
+    padding: 14px 20px;
+    margin: 8px 0;
+}
+
+.button {
+    width: 100%;
+    background-color: var(--positive-color);
+    color: var(--bg-color);
+    padding: 14px 20px;
+    margin: 8px auto 0px auto;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: block;
+}
+
+.link-list {
+    list-style-type: none;
+}
+
+.content {
+    font-family: 'Arial Narrow Bold', sans-serif;
 }
 
 /* ***** Game ***** */
@@ -76,7 +137,7 @@ h2 {
     height: 80px;
     right: 20px;
     top: 190px;
-    position: fixed;    
+    position: fixed;
 }
 
 /* ***** Next ***** */
@@ -160,7 +221,7 @@ h2 {
         width: 80%;
     }
 
-    h1, h2, p { 
-        font-size: 10pt; 
+    h1, h2, p {
+        font-size: 10pt;
      }
 }
