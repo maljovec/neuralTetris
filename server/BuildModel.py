@@ -62,7 +62,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     parameters = []
     for row in range(HEIGHT):
         for col in range(WIDTH):
-            parameters.append('board_{}_{}'.format(row, col))
+            parameters.append(f'board_{row}_{col}')
 
     parameters.append('currentPiece')
     parameters.append('nextPiece')
@@ -95,7 +95,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     training_data = pd.DataFrame([row for row in training_data])
 
     end = time()
-    print('Done ({} s)'.format(end-start))
+    print(f'Done ({end-start} s)')
     ############################################################################
     ## Reconstruct missing data by filling in the missing ticks with zero input
     if reconstruct_missing_data:
@@ -118,7 +118,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
         training_data = pd.concat([training_data, new_rows], ignore_index=True)
 
         end = time()
-        print('Done ({} s)'.format(end-start))
+        print(f'Done ({end-start} s)')
     ############################################################################
     ## Re-balance the data set if possible
     if balance_data:
@@ -152,7 +152,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
             training_data = pd.concat([training_data, nonzero_rows], ignore_index=True)
 
         end = time()
-        print('Done ({} s)'.format(end-start))
+        print(f'Done ({end-start} s)')
     ############################################################################
     ## Create the training data
     print('Massaging data...', end="")
@@ -188,7 +188,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     pieceData = np.vstack([currentData,nextData]).T
 
     end = time()
-    print('Done ({} s)'.format(end-start))
+    print(f'Done ({end-start} s)')
 
     ############################################################################
     ## Build the NN architecture (this is where we can play around)
@@ -222,7 +222,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     callbacks_list = [checkpoint]
 
     end = time()
-    print('Done ({} s)'.format(end-start))
+    print(f'Done ({end-start} s)')
     ############################################################################
     ## Fit the model
     start = time()
@@ -234,14 +234,14 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     ## Print after the fact, since Tensorflow will be providing some
     ## intermediate output to let the user know something is happening.
     print('Fitting the model...', end="")
-    print('Done ({} s)'.format(end-start))
+    print(f'Done ({end-start} s)')
     return model, unique_inputs
 
 nnet, classes = train(USER, False, True)
-model_file = 'user_{}.h5'.format(USER)
-inputs_file = 'user_{}.csv'.format(USER)
+model_file = f'user_{USER}.h5'
+inputs_file = f'user_{USER}.csv'
 
 nnet.save(model_file)
 np.savetxt(inputs_file, classes, fmt='%d', delimiter=',')
 
-print('Model saved as \"{}\" with inputs saved to \"{}\"'.format(model_file, inputs_file))
+print(f'Model saved as \"{model_file}\" with inputs saved to \"{inputs_file}\"')

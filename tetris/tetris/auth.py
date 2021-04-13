@@ -1,8 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_manager, login_user, logout_user, login_required
-import rethinkdb as r
-import os
 
 from tetris.models import User
 from tetris.db import DB_HOST, DB_PORT, RDB
