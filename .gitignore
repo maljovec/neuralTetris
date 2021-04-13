@@ -1,5 +1,6 @@
 .mypy_cache/
 .direnv/
+venv/
 .vscode/
 env/
 *.pyc
