@@ -75,7 +75,7 @@ async def updateDatabase(websocket, path):
     elif gameType == 'Replaying':
         userId = int(await websocket.recv())
         gameId = int(await websocket.recv())
-        
+
         ## Store the results of this game locally, this will result in a larger
         ## memory footprint, but will mitigate the round trips to the database
         result = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId) & (rdb.row['gameId'] == gameId)).order_by('ticks').pluck(['ticks','input']).run(connection)
@@ -91,7 +91,7 @@ async def updateDatabase(websocket, path):
                 print('Replay {} has ended for player {}. Closing websocket.'.format(gameId, userId))
                 break
             elif tickNumber in processed:
-                continue 
+                continue
             ## This will query the database on each tick
             # result = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId) & (rdb.row['gameId'] == gameId) & (rdb.row['ticks'] == tickNumber)).pluck('input').run(connection)
             # result = [row for row in result]
@@ -144,7 +144,7 @@ async def updateDatabase(websocket, path):
                         datum = 't'
                     else:
                         datum = ' '
-                    
+
                 text += sep + datum
                 sep = ','
             await websocket.send(text)
@@ -165,7 +165,7 @@ async def updateDatabase(websocket, path):
             if ticks < 0:
                 print('The AI of player {} has lost game {}. Closing websocket.'.format(userId, gameId))
                 break
-            
+
             boardData = np.zeros((HEIGHT, WIDTH))
 
             idx = 0
@@ -173,7 +173,7 @@ async def updateDatabase(websocket, path):
                 for col in range(WIDTH):
                     boardData[row, col] = (tokens[3+row*WIDTH+col] != '0')
                     idx += 1
-                    
+
             currentData = encode_letter(tokens[223])
             idx += 1
 
