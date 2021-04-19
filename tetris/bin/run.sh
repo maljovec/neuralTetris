@@ -6,5 +6,5 @@ if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
 . "$DIR/secret.sh"
 
 export FLASK_APP=tetris
-export FLASK_DEBUG=1
+export FLASK_DEBUG=0
 flask run

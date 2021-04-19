@@ -4,7 +4,7 @@
 
 import numpy as np
 import pandas as pd
-import rethinkdb as rdb
+import rethinkdb as r
 
 from keras.models import Sequential, Model
 from keras.layers import Input, Dense, Activation, Conv2D, Reshape, Flatten, Concatenate
@@ -15,6 +15,9 @@ from time import time
 WIDTH = 10
 HEIGHT = 22
 USER = 8
+
+rdb = r.RethinkDB()
+
 
 def encode_letter(letter):
     """
@@ -36,6 +39,7 @@ def encode_letter(letter):
     elif letter == 'z':
         value = 6
     return value
+
 
 def train(user_id, reconstruct_missing_data=False, balance_data=False):
     """
@@ -106,8 +110,8 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
         last_row = None
         for index, row in training_data.iterrows():
             if last_row is not None and last_row['gameId'] == row['gameId']:
-                if row['ticks'] != last_row['ticks']+1:
-                    for tick in range(last_row['ticks']+1, row['ticks']):
+                if row['ticks'] != last_row['ticks'] + 1:
+                    for tick in range(last_row['ticks'] + 1, row['ticks']):
                         new_row = last_row.copy()
                         new_row['ticks'] = tick
                         new_row['input'] = 0
@@ -146,10 +150,11 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
         #     percent = count / float(total_count)
 
         ## Just duplicate the non-zero and non-drop elements for now
-        nonzero_rows = training_data.loc[training_data[target] != 0 ]
-        nonzero_rows = nonzero_rows.loc[nonzero_rows[target] != 9 ]
-        for i in range(7):  
-            training_data = pd.concat([training_data, nonzero_rows], ignore_index=True)
+        nonzero_rows = training_data.loc[training_data[target] != 0]
+        nonzero_rows = nonzero_rows.loc[nonzero_rows[target] != 9]
+        for i in range(7):
+            training_data = pd.concat([training_data, nonzero_rows],
+                                      ignore_index=True)
 
         end = time()
         print(f'Done ({end-start} s)')
@@ -179,13 +184,13 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     ############################################################################
     ## Reorganize the data to allow it to be passed in as separate layers
 
-    boardData = train_x[:, :WIDTH*HEIGHT]
+    boardData = train_x[:, :WIDTH * HEIGHT]
     boardData = boardData.reshape(-1, HEIGHT, WIDTH)
-    currentData = train_x[:, WIDTH*HEIGHT]
-    nextData = train_x[:, WIDTH*HEIGHT+1]
-    timeData = train_x[:, WIDTH*HEIGHT+2]
-    bagData = train_x[:, WIDTH*HEIGHT+3:]
-    pieceData = np.vstack([currentData,nextData]).T
+    currentData = train_x[:, WIDTH * HEIGHT]
+    nextData = train_x[:, WIDTH * HEIGHT + 1]
+    timeData = train_x[:, WIDTH * HEIGHT + 2]
+    bagData = train_x[:, WIDTH * HEIGHT + 3:]
+    pieceData = np.vstack([currentData, nextData]).T
 
     end = time()
     print(f'Done ({end-start} s)')
@@ -196,29 +201,56 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     start = time()
 
     board_shape = (HEIGHT, WIDTH)
-    board_input = Input(shape=board_shape, dtype=np.float32, name='board_input')
-    bag_input = Input(shape=(7,), dtype=np.float32, name='bag_input')
-    piece_input = Input(shape=(2,), dtype=np.float32, name='piece_input')
-    speed_input = Input(shape=(1,), dtype=np.float32, name='speed_input')
+    board_input = Input(shape=board_shape,
+                        dtype=np.float32,
+                        name='board_input')
+    bag_input = Input(shape=(7, ), dtype=np.float32, name='bag_input')
+    piece_input = Input(shape=(2, ), dtype=np.float32, name='piece_input')
+    speed_input = Input(shape=(1, ), dtype=np.float32, name='speed_input')
 
-    conv_input = Reshape(board_shape + (1, ), input_shape=board_shape)(board_input)
-    conv_output = Conv2D(filters=32, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer1_conv3-32')(conv_input)
-    conv_output = Conv2D(filters=32, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer2_conv3-32')(conv_output)
-    conv_output = Conv2D(filters=64, kernel_size=3, strides=1, padding='valid', activation='relu', name='layer3_conv3-64')(conv_output)
+    conv_input = Reshape(board_shape + (1, ),
+                         input_shape=board_shape)(board_input)
+    conv_output = Conv2D(filters=32,
+                         kernel_size=3,
+                         strides=1,
+                         padding='valid',
+                         activation='relu',
+                         name='layer1_conv3-32')(conv_input)
+    conv_output = Conv2D(filters=32,
+                         kernel_size=3,
+                         strides=1,
+                         padding='valid',
+                         activation='relu',
+                         name='layer2_conv3-32')(conv_output)
+    conv_output = Conv2D(filters=64,
+                         kernel_size=3,
+                         strides=1,
+                         padding='valid',
+                         activation='relu',
+                         name='layer3_conv3-64')(conv_output)
     flattened_output = Flatten()(conv_output)
 
-    secondary_input = Concatenate()([flattened_output, bag_input, piece_input, speed_input])
+    secondary_input = Concatenate()(
+        [flattened_output, bag_input, piece_input, speed_input])
 
     secondary_input = Dense(128, activation='relu')(secondary_input)
     secondary_input = Dense(512, activation='relu')(secondary_input)
     secondary_input = Dense(13, activation='relu')(secondary_input)
-    final_output = Dense(num_unique_inputs, activation='softmax')(secondary_input)
+    final_output = Dense(num_unique_inputs,
+                         activation='softmax')(secondary_input)
 
-    model = Model([board_input, bag_input, piece_input, speed_input], outputs=[final_output])
-    model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+    model = Model([board_input, bag_input, piece_input, speed_input],
+                  outputs=[final_output])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='sgd',
+                  metrics=['accuracy'])
 
-    filepath="weights-improvement-{epoch:02d}-{acc:.2f}.hdf5"
-    checkpoint = ModelCheckpoint(filepath, monitor='acc', verbose=1, save_best_only=True, mode='max')
+    filepath = "weights-improvement-{epoch:02d}-{acc:.2f}.hdf5"
+    checkpoint = ModelCheckpoint(filepath,
+                                 monitor='acc',
+                                 verbose=1,
+                                 save_best_only=True,
+                                 mode='max')
     callbacks_list = [checkpoint]
 
     end = time()
@@ -227,7 +259,11 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     ## Fit the model
     start = time()
 
-    history = model.fit([boardData, bagData, pieceData, timeData], train_y, epochs=100, batch_size=1, callbacks=callbacks_list)
+    history = model.fit([boardData, bagData, pieceData, timeData],
+                        train_y,
+                        epochs=100,
+                        batch_size=1,
+                        callbacks=callbacks_list)
 
     end = time()
 
@@ -237,6 +273,7 @@ def train(user_id, reconstruct_missing_data=False, balance_data=False):
     print(f'Done ({end-start} s)')
     return model, unique_inputs
 
+
 nnet, classes = train(USER, False, True)
 model_file = f'user_{USER}.h5'
 inputs_file = f'user_{USER}.csv'
@@ -244,4 +281,5 @@ inputs_file = f'user_{USER}.csv'
 nnet.save(model_file)
 np.savetxt(inputs_file, classes, fmt='%d', delimiter=',')
 
-print(f'Model saved as \"{model_file}\" with inputs saved to \"{inputs_file}\"')
+print(
+    f'Model saved as \"{model_file}\" with inputs saved to \"{inputs_file}\"')
