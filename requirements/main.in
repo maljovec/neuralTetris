@@ -1,0 +1,9 @@
+attrs
+flask
+flask_login
+keras
+numpy
+pandas==1.1.5
+rethinkdb
+tensorflow
+websockets

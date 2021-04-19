@@ -4,13 +4,16 @@ import sys
 
 import asyncio
 import websockets
-import rethinkdb as rdb
+import rethinkdb as r
 import pandas as pd
 import numpy as np
 import keras
 
 WIDTH = 10
 HEIGHT = 22
+
+rdb = r.RethinkDB()
+
 
 def encode_letter(letter):
     """
@@ -33,8 +36,9 @@ def encode_letter(letter):
         value = 6
     return value
 
+
 async def updateDatabase(websocket, path):
-    print('User connected on: {} with path {}'.format(websocket, path))
+    print(f'User connected on: {websocket} with path {path}')
     print('connecting to database...', end='')
     connection = rdb.connect('localhost', 28015)
     print('Connection established')
@@ -43,19 +47,22 @@ async def updateDatabase(websocket, path):
     if gameType == 'Recording':
         while True:
             tetrisMove = await websocket.recv()
-            print('Data received: {} bytes'.format(sys.getsizeof(tetrisMove)))
+            print(f'Data received: {sys.getsizeof(tetrisMove)} bytes')
             move = {}
             tokens = tetrisMove.split(',')
             move['userId'] = int(tokens[0])
             move['gameId'] = int(tokens[1])
             move['ticks'] = int(tokens[2])
             if move['ticks'] < 0:
-                print('Player {} has lost game {}. Closing websocket.'.format(move['userId'], move['gameId']))
+                print(
+                    f'Player {move["userId"]} has lost game {move["gameId"]}. Closing websocket.'
+                )
                 break
 
             for row in range(HEIGHT):
                 for col in range(WIDTH):
-                    move['board_{}_{}'.format(row,col)] = (tokens[3+row*WIDTH+col] != '0')
+                    move[f'board_{row}_{col}'] = (tokens[3 + row * WIDTH + col]
+                                                  != '0')
             move['currentPiece'] = tokens[223]
             move['nextPiece'] = tokens[224]
             move['timeDelay'] = int(tokens[225])
@@ -71,14 +78,19 @@ async def updateDatabase(websocket, path):
             move['input'] = int(tokens[235])
 
             rdb.db('Tetris').table('moves').insert(move).run(connection)
-            print('Tick {} of {} for player {} recorded'.format(move['ticks'], move['gameId'], move['userId']))
+            print(
+                f'Tick {move["ticks"]} of {move["gameId"]} for player {move["userId"]} recorded'
+            )
     elif gameType == 'Replaying':
         userId = int(await websocket.recv())
         gameId = int(await websocket.recv())
-        
+
         ## Store the results of this game locally, this will result in a larger
         ## memory footprint, but will mitigate the round trips to the database
-        result = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId) & (rdb.row['gameId'] == gameId)).order_by('ticks').pluck(['ticks','input']).run(connection)
+        result = rdb.db('Tetris').table('moves').filter(
+            (rdb.row['userId'] == userId)
+            & (rdb.row['gameId'] == gameId)).order_by('ticks').pluck(
+                ['ticks', 'input']).run(connection)
         gameData = pd.DataFrame(result)
 
         ## In case the client requests the same number twice, we want to ignore
@@ -88,10 +100,12 @@ async def updateDatabase(websocket, path):
         while True:
             tickNumber = int(await websocket.recv())
             if tickNumber < 0:
-                print('Replay {} has ended for player {}. Closing websocket.'.format(gameId, userId))
+                print(
+                    f'Replay {gameId} has ended for player {userId}. Closing websocket.'
+                )
                 break
             elif tickNumber in processed:
-                continue 
+                continue
             ## This will query the database on each tick
             # result = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId) & (rdb.row['gameId'] == gameId) & (rdb.row['ticks'] == tickNumber)).pluck('input').run(connection)
             # result = [row for row in result]
@@ -105,22 +119,25 @@ async def updateDatabase(websocket, path):
             ## TODO: more fault tolerance is needed here in case the database
             ## gets corrupted. If the gameData holds more than one row where
             ## the ticks are stored, then this may not work as expected
-            matchingInput = gameData.loc[gameData['ticks'] == tickNumber]['input']
+            matchingInput = gameData.loc[gameData['ticks'] ==
+                                         tickNumber]['input']
             if len(matchingInput) == 1:
                 userInput = int(matchingInput)
             else:
                 userInput = 0
 
             processed.add(tickNumber)
-            await websocket.send('{},{}'.format(tickNumber,userInput))
-            print('Sent input code {} for Tick {} of {} for player {}'.format(userInput, tickNumber, gameId, userId))
+            await websocket.send(f'{tickNumber},{userInput}')
+            print(
+                f'Sent input code {userInput} for Tick {tickNumber} of {gameId} for player {userId}'
+            )
     elif gameType == 'Full State':
         userId = int(await websocket.recv())
         gameId = int(await websocket.recv())
         parameters = ['ticks']
         for row in range(HEIGHT):
             for col in range(WIDTH):
-                parameters.append('board_{}_{}'.format(row,col))
+                parameters.append(f'board_{row}_{col}')
         parameters.append('currentPiece')
         parameters.append('nextPiece')
         parameters.append('iCount')
@@ -133,7 +150,10 @@ async def updateDatabase(websocket, path):
         parameters.append('lines')
         parameters.append('score')
 
-        result = rdb.db('Tetris').table('moves').filter((rdb.row['userId'] == userId) & (rdb.row['gameId'] == gameId)).pluck(parameters).order_by('ticks').run(connection)
+        result = rdb.db('Tetris').table('moves').filter(
+            (rdb.row['userId'] == userId)
+            & (rdb.row['gameId'] == gameId)).pluck(parameters).order_by(
+                'ticks').run(connection)
         for row in result:
             text = ''
             sep = ''
@@ -144,17 +164,19 @@ async def updateDatabase(websocket, path):
                         datum = 't'
                     else:
                         datum = ' '
-                    
+
                 text += sep + datum
                 sep = ','
             await websocket.send(text)
-        print('All data for Replay {} of player {} has been sent. Closing websocket.'.format(gameId, userId))
+        print(
+            f'All data for Replay {gameId} of player {userId} has been sent. Closing websocket.'
+        )
     elif gameType == 'Playing':
         userId = int(await websocket.recv())
 
-        model = keras.models.load_model('user_{}.h5'.format(userId))
-        model.load_weights("user_{}_weights.hdf5".format(userId))
-        inputs = np.loadtxt('user_{}.csv'.format(userId), delimiter=',', dtype=int)
+        model = keras.models.load_model(f'user_{userId}.h5')
+        model.load_weights(f"user_{userId}_weights.hdf5")
+        inputs = np.loadtxt(f'user_{userId}.csv', delimiter=',', dtype=int)
         while True:
             ## Retrieve the board state
             gameState = await websocket.recv()
@@ -163,17 +185,20 @@ async def updateDatabase(websocket, path):
             gameId = int(tokens[1])
             ticks = int(tokens[2])
             if ticks < 0:
-                print('The AI of player {} has lost game {}. Closing websocket.'.format(userId, gameId))
+                print(
+                    f'The AI of player {userId} has lost game {gameId}. Closing websocket.'
+                )
                 break
-            
+
             boardData = np.zeros((HEIGHT, WIDTH))
 
             idx = 0
             for row in range(HEIGHT):
                 for col in range(WIDTH):
-                    boardData[row, col] = (tokens[3+row*WIDTH+col] != '0')
+                    boardData[row,
+                              col] = (tokens[3 + row * WIDTH + col] != '0')
                     idx += 1
-                    
+
             currentData = encode_letter(tokens[223])
             idx += 1
 
@@ -183,10 +208,10 @@ async def updateDatabase(websocket, path):
             timeData = np.array([int(tokens[225])])
             idx += 1
 
-            bagData = np.zeros((1,7))
+            bagData = np.zeros((1, 7))
             startIdx = 226
             for i in range(7):
-                bagData[0,i] = int(tokens[startIdx + i])
+                bagData[0, i] = int(tokens[startIdx + i])
 
             minVal = min(bagData)
             bagData = bagData - minVal
@@ -195,7 +220,7 @@ async def updateDatabase(websocket, path):
             score = int(tokens[234])
 
             boardData = boardData.reshape(-1, HEIGHT, WIDTH)
-            pieceData = np.vstack([currentData,nextData]).T
+            pieceData = np.vstack([currentData, nextData]).T
 
             ## Feed the board state into our neural network
             idx = model.predict([boardData, bagData, pieceData, timeData])
@@ -209,13 +234,15 @@ async def updateDatabase(websocket, path):
             ## Possibly visualize the neural network firing
 
             ## Send the input back to the game that requested it
-            print('Sending predicted input of {} for player {} for tick {} of game {}.'.format(userInput, userId, ticks, gameId))
-            await websocket.send('{},{}'.format(ticks,userInput))
+            print(
+                f'Sending predicted input of {userInput} for player {userId} for tick {ticks} of game {gameId}.'
+            )
+            await websocket.send(f'{ticks},{userInput}')
 
 
 print('Server online')
 
-start_server = websockets.serve(updateDatabase, 'localhost', 8888)
+start_server = websockets.serve(updateDatabase, '0.0.0.0', 5987)
 
 asyncio.get_event_loop().run_until_complete(start_server)
 asyncio.get_event_loop().run_forever()

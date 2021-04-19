@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1 class="title">
+    Welcome, {{ name }}!
+</h1>
+<p class="content"> Please select a mode:</p>
+<ul class="link-list">
+    <li><a href="{{ url_for('main.play') }}" class="body__link"><i class="fas fa-gamepad"></i> Play</a></li>
+    <li><a href="{{ url_for('main.watch') }}" class="body__link"><i class="fas fa-eye"></i> Watch</a></li>
+    <li><a href="{{ url_for('main.test') }}" class="body__link"><i class="fas fa-brain"></i> Test</a></li>
+    <li><a href="{{ url_for('main.debug') }}" class="body__link"><i class="fas fa-bug"></i> Debug</a></li>
+</ul>
+{% endblock %}
